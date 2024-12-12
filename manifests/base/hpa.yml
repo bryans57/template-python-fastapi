@@ -1,0 +1,23 @@
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: #{SERVICE_NAME}#
+spec:
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          averageUtilization: 80
+          type: AverageValue
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          averageUtilization: 80
+          type: Utilization
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: #{SERVICE_NAME}#

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: #{SERVICE_NAME}#
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: #{SERVICE_NAME}#
+  template:
+    metadata:
+      labels:
+        app: #{SERVICE_NAME}#
+    spec:
+      volumes:
+        - name: 'apis-service-account'
+          secret:
+            secretName: 'apis-service-account'
+      containers: # Use this just if your db need a proxy for connect with your db
+        - name: cloudsql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:1.11
+          command:
+            [
+              '/cloud_sql_proxy',
+              '--dir=/cloudsql',
+              '-instances=#{GCP_PROJECT}#:#{REPLACE_FOR_DB}:#{REPLACE_FOR_DB_PORT}',
+              '-credential_file=/var/secret/apis-service-account.json', # This is the service account for connect with the db
+            ]
+          volumeMounts:
+            - name: 'apis-service-account'
+              mountPath: '/var/secret'
+              readOnly: true
+          resources:
+            limits:
+              cpu: 100m
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 8Mi
+        - name: #{SERVICE_NAME}#
+          imagePullPolicy: Always
+          image: gcr.io/#{CLUSTER_PROJECT_ID}#/#{SERVICE_NAME}#:#{Build.BuildId}#
+          volumeMounts:
+            - name: 'apis-service-account'
+              mountPath: '/var/secret'
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: 200m
+              memory: 240Mi
+            requests:
+              cpu: 100m
+              memory: 240Mi
+          env:
+            - name: 'GOOGLE_APPLICATION_CREDENTIALS'
+              value: '/var/secret/apis-service-account.json'
