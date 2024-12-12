@@ -1,0 +1,93 @@
+[tool.poetry]
+name = "template-python-fastapi"
+version = "0.1.0"
+package-mode = false
+description = "Template for a FastAPI project"
+authors = ["bryans57 <bryanscm1@gmail.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = { extras = ["standard"], version = "^0.115.0" }
+psycopg2-binary = "^2.9.10"
+injector = "^0.22.0"
+redis = "^5.2.0"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
+pydantic = "^2.10.1"
+uvicorn = "^0.23.0"
+google-cloud-storage = "^2.18.2"
+pyarrow = "^18.1.0"
+pandas = "^2.2.3"
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.6.7"
+pytest = "^8.3.3"
+pytest-postgresql = "^6.1.1"
+black = "^24.10.0"
+isort = "^5.13.2"
+pre-commit = "^2.9.2"
+pylint = "^3.3.1"
+pylint-restricted-imports = "^0.2.2"
+
+[tool.poetry.scripts]
+install-pre-commit = "sh -c 'pre-commit install'"
+
+[tool.black]
+line-length = 120
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+force_grid_wrap = 2
+atomic = true
+include_trailing_comma = true
+lines_after_imports = 2
+lines_between_types = 1
+use_parentheses = true
+src_paths = ["src/"]
+filter_files = true
+known_first_party = ["src", "tests"]
+
+[tool.pytest.ini_options]
+python_files = [
+    "tests/*.py",
+]
+addopts = "--cov-fail-under=90 --tb=short"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["**/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+    # Don't complain if non-runnable code isn't run:
+    "if __name__ == .__main__.:",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

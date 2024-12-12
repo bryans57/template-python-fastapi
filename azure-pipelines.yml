@@ -1,0 +1,161 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+  - main
+variables:
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'),startsWith(variables['System.PullRequest.SourceBranch'], 'refs/heads/feature/'),eq(variables['Build.SourceBranch'], 'refs/heads/testing')) }}:
+      - group: '#{HERE_YOUR_AZURE_VARIABLES}-test'
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'),startsWith(variables['System.PullRequest.SourceBranch'], 'refs/heads/feature/'),eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
+      - group: '#{HERE_YOUR_AZURE_VARIABLES}-prod'
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'),startsWith(variables['System.PullRequest.SourceBranch'], 'refs/heads/feature/'),eq(variables['Build.SourceBranch'], 'refs/heads/dev')) }}:
+      - group: '#{HERE_YOUR_AZURE_VARIABLES}-dev'
+
+
+stages:
+  - stage: build
+    displayName: 'Build'
+    jobs:
+      - job: build
+        displayName: 'Build Python'
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          matrix:
+            Python311:
+              python.version: '3.11'
+
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(python.version)'
+            displayName: 'Use Python $(python.version)'
+          - script: |
+              if [ -e env/azure.env ]; then
+
+                cp env/azure.env  $(Build.SourcesDirectory)/.env
+                ls -la
+                cat .env
+                else
+                  ls
+                fi
+            displayName: 'create env azure.env'
+
+
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@6
+            displayName: 'Replace tokens'
+            inputs:
+              rootDirectory: '$(Build.SourcesDirectory)'
+              targetFiles: |
+                .env
+          - script: |
+              sudo apt update
+              sudo apt install -y pipx
+              pipx ensurepath
+              pipx install poetry
+              poetry install
+            displayName: 'Install dependencies'
+
+          - script: |
+              poetry run pytest -v
+            displayName: 'Run test'
+
+          - script: |
+              poetry run coverage run -m pytest
+              poetry run coverage xml
+            displayName: 'Run tests with coverage'
+
+          - script: |
+              poetry run pre-commit install
+              poetry run pre-commit run --all-files
+            displayName: "Linter"
+
+          - task: PublishCodeCoverageResults@2
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+            displayName: 'Publish code coverage results'
+          - task: SonarQubePrepare@6
+            inputs:
+              SonarQube: 'sonarqube-all-branch'
+              scannerMode: 'CLI'
+              configMode: 'manual'
+              cliProjectKey: '#{your_identify_for_project}'
+              cliProjectName: '#{your_identify_for_project}'
+              cliSources: '.'
+              extraProperties: |
+                sonar.python.coverage.reportPaths=$(System.DefaultWorkingDirectory)/coverage.xml
+                sonar.python.xunit.reportPath=$(System.DefaultWorkingDirectory)/$(EnginePath)/test.xml
+
+          - task: SonarQubeAnalyze@6
+            displayName: 'Run SonarQube analysis'
+            inputs:
+              projectKey: '#{your_identify_for_project}'
+              projectName: '#{your_identify_for_project}'
+
+          - task: SonarQubePublish@6
+            inputs:
+              pollingTimeoutSec: '300'
+          - task: Docker@2
+            displayName: 'Build Image'
+            inputs:
+              containerRegistry: $(DOCKER_CONNECTION)
+              repository: $(IMAGE_NAME)
+              command: 'build'
+              dockerfile: 'Dockerfile'
+              arguments: '--no-cache'
+
+          - task: Docker@2
+            displayName: 'Push Image'
+            inputs:
+              containerRegistry: $(DOCKER_CONNECTION)
+              repository: $(IMAGE_NAME)
+              command: 'push'
+              dockerfile: 'Dockerfile'
+              tags: |
+                $(Build.BuildId)
+  - stage: deploy
+    displayName: 'deploy'
+    #condition: and(succeeded(), eq(variables.isFeatureBranch, false))
+    ##dependsOn: esto es para la parte de aprobacion
+    ##- approve
+
+    jobs:
+      - job: deploy
+        displayName: 'deploy api kubernetes gcp'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@6
+            displayName: 'Replace tokens'
+            inputs:
+              rootDirectory: '$(Build.SourcesDirectory)/manifests'
+              targetFiles: |
+                **/*.yml
+                overlays/**/*.yml
+
+          - script: |
+              cat $(Build.SourcesDirectory)/manifests/overlays/$(ENV)/hpa.yml
+            displayName: 'imprimir archivo'
+
+          - task: KubernetesManifest@0
+            name: bake
+            displayName: Bake K8s manifests from kustomization path
+            inputs:
+              action: bake
+              renderType: kustomize
+              kustomizationPath: $(Build.SourcesDirectory)/manifests/overlays/$(ENV)
+
+
+          - task: KubernetesManifest@0
+            displayName: Deploy K8s manifests
+            timeoutInMinutes: 40
+            inputs:
+              kubernetesServiceConnection: $(KUBERNETES_CONNECTION)
+              manifests: $(bake.manifestsBundle)
+              namespace: apis
+              rolloutStatusTimeout: 1800
+              containers: |
+                gcr.io/$(IMAGE_NAME):$(Build.BuildId)
