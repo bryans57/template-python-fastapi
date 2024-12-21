@@ -52,6 +52,20 @@ Suggested (Production)
 uvicorn src.infrastructure.api.main:app --host 0.0.0.0 --port 8000
 ```
 
+### Docker Postgresql
+
+If you want to test the basic endpoint for get information, you can start or stop the docker container
+
+**(Remember that you need to have docker installed)**
+
+```sh
+## Start docker
+make start-db
+
+## Stop docker
+make stop-db
+```
+
 ## Testing
 
 ### Run test status
