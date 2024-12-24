@@ -8,6 +8,7 @@ from fastapi import (
 from src.adapter.controllers import PersonController
 from src.adapter.dtos import (
     PersonDto,
+    PersonInsertDto,
     Response,
     StructureResponse,
 )
@@ -31,5 +32,20 @@ async def start(
     body: PersonDto,
     server: PersonController = Depends(lambda: injector.get(PersonController)),
 ):
-    data = server.validate_person(body)
+    data = server.get_person(body)
+    return StructureResponse.ok(data)
+
+
+@basic_person_example_route.post(
+    "/add",
+    tags=["Example Router Postgresql"],
+    description="""Let you add a person to the dump table""",
+    response_model=Response[Person],
+    response_model_exclude_none=True,
+)
+async def add_person(
+    body: PersonInsertDto,
+    server: PersonController = Depends(lambda: injector.get(PersonController)),
+):
+    data = server.add_person(body)
     return StructureResponse.ok(data)

@@ -17,3 +17,6 @@ class PersonInfo:
 
     def get_with_params(self, params: PersonDto) -> List[Person]:
         return self.person_dao.get_info(params.identifications, params.fieldsInfo)
+
+    def add(self, person: Person) -> Person:
+        return self.person_dao.add_person(person)

@@ -35,9 +35,46 @@ class PersonDAO(PersonRepository):
 					"""
                 ).format(fields=fields_set)
                 cursor.execute(query, (identifications,))
+                con.commit()
                 results = cursor.fetchall()
                 result_convert = [Person(**fila) for fila in results]
                 return result_convert
+        except DatabaseError as e:
+            raise DatabaseErrorHandling(e) from e
+        finally:
+            self.db.put_connection(con)
+
+    def add_person(self, person: Person) -> Person:
+        con = self.db.get_connection()
+        try:
+            with con.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Convert person to a dictionary
+                person_data = person.model_dump()
+                fields = list(person_data.keys())
+                values = list(person_data.values())
+
+                # Create SQL for fields and placeholders
+                fields_set = sql.SQL(", ").join(map(sql.Identifier, fields))
+                placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in fields)
+
+                query = sql.SQL(
+                    """
+                    INSERT INTO person ({fields})
+                    VALUES ({placeholders})
+                    RETURNING *;
+                    """
+                ).format(fields=fields_set, placeholders=placeholders)
+
+                # Log query
+                full_query = cursor.mogrify(query.as_string(con), values)
+                print(full_query.decode("utf-8"))
+
+                # Execute query with values
+                cursor.execute(query, values)
+                con.commit()
+                result = cursor.fetchone()
+
+                return Person(**result)
         except DatabaseError as e:
             raise DatabaseErrorHandling(e) from e
         finally:
