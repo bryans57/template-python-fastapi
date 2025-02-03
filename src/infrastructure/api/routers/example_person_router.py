@@ -1,4 +1,8 @@
-from typing import List
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
 from fastapi import (
     APIRouter,
@@ -12,7 +16,10 @@ from src.adapter.dtos import (
     Response,
     StructureResponse,
 )
-from src.adapter.dtos.person_dto import PersonUpdateDto
+from src.adapter.dtos.person_dto import (
+    PersonDeleteDto,
+    PersonUpdateDto,
+)
 from src.conf import injector
 from src.domain.models.person import Person
 
@@ -63,5 +70,20 @@ async def update_person(
     body: PersonUpdateDto,
     server: PersonController = Depends(lambda: injector.get(PersonController)),
 ):
-    data = server.uptade_person(body)
+    data = server.update_person(body)
+    return StructureResponse.ok(data)
+
+
+@basic_person_example_route.delete(
+    "/",
+    tags=["Example Router Postgresql"],
+    description="""Let you delete a person in the dump table""",
+    response_model=Response[Union[Optional[List[Person]], str]],
+    response_model_exclude_none=True,
+)
+async def delete_person(
+    body: PersonDeleteDto,
+    server: PersonController = Depends(lambda: injector.get(PersonController)),
+):
+    data = server.delete_person(body)
     return StructureResponse.ok(data)
