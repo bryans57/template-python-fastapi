@@ -24,6 +24,7 @@ class PersonDAO(PersonRepository):
             with con.cursor(cursor_factory=RealDictCursor) as cursor:
                 filtered_fields_info = [field for field in fields_info if field != "identification"]
                 fields_set = sql.SQL(", ").join(map(sql.Identifier, filtered_fields_info))
+
                 query = sql.SQL(
                     """
 						WITH list_person AS (
@@ -34,8 +35,10 @@ class PersonDAO(PersonRepository):
                         LEFT JOIN person p ON lp.identification = p.identification;
 					"""
                 ).format(fields=fields_set)
+
                 cursor.execute(query, (identifications,))
                 con.commit()
+
                 results = cursor.fetchall()
                 result_convert = [Person(**fila) for fila in results]
                 return result_convert
@@ -50,8 +53,7 @@ class PersonDAO(PersonRepository):
             with con.cursor(cursor_factory=RealDictCursor) as cursor:
                 # Convert person to a dictionary
                 person_data = person.model_dump()
-                fields = list(person_data.keys())
-                values = list(person_data.values())
+                fields, values = list(person_data.keys()), list(person_data.values())
 
                 # Create SQL for fields and placeholders
                 fields_set = sql.SQL(", ").join(map(sql.Identifier, fields))
@@ -71,6 +73,45 @@ class PersonDAO(PersonRepository):
 
                 # Execute query with values
                 cursor.execute(query, values)
+                con.commit()
+                result = cursor.fetchone()
+
+                return Person(**result)
+        except DatabaseError as e:
+            raise DatabaseErrorHandling(e) from e
+        finally:
+            self.db.put_connection(con)
+
+    def update_person(self, person: Person) -> Person:
+        con = self.db.get_connection()
+        try:
+            with con.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Convert person to a dictionary
+                person_data = person.model_dump()
+                filtered_person_data = {k: v for k, v in person_data.items() if k != "identification" and v is not None}
+                dict_values_person = filtered_person_data.items()
+
+                query = sql.SQL(
+                    """
+                    UPDATE person
+                    SET {fields}
+                    WHERE identification = {identification}
+                    RETURNING *;
+                    """
+                ).format(
+                    fields=sql.SQL(", ").join(
+                        sql.Composed([sql.Identifier(field), sql.SQL(" = "), sql.Literal(value)])
+                        for field, value in dict_values_person
+                    ),
+                    identification=sql.Literal(person.identification),
+                )
+
+                # Log query
+                full_query = cursor.mogrify(query.as_string(con), dict_values_person)
+                print(full_query.decode("utf-8"))
+
+                # Execute query with values
+                cursor.execute(query, dict_values_person)
                 con.commit()
                 result = cursor.fetchone()
 

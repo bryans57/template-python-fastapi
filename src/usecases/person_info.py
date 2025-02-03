@@ -20,3 +20,6 @@ class PersonInfo:
 
     def add(self, person: Person) -> Person:
         return self.person_dao.add_person(person)
+
+    def update(self, person: Person):
+        return self.person_dao.update_person(person)

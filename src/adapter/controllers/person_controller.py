@@ -6,6 +6,7 @@ from src.adapter.dtos import (
     PersonDto,
     PersonInsertDto,
 )
+from src.adapter.dtos.person_dto import PersonUpdateDto
 from src.domain.models import Person
 from src.usecases import PersonInfo
 
@@ -27,3 +28,8 @@ class PersonController:
         dump_params = params.model_dump()
         person = Person(**dump_params)
         return self.person_info.add(person)
+
+    def uptade_person(self, params: PersonUpdateDto) -> Person:
+        dump_params = params.model_dump()
+        person = Person(**dump_params)
+        return self.person_info.update(person)

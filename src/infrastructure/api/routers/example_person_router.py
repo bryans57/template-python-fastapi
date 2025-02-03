@@ -12,6 +12,7 @@ from src.adapter.dtos import (
     Response,
     StructureResponse,
 )
+from src.adapter.dtos.person_dto import PersonUpdateDto
 from src.conf import injector
 from src.domain.models.person import Person
 
@@ -37,7 +38,7 @@ async def start(
 
 
 @basic_person_example_route.post(
-    "/add",
+    "/",
     tags=["Example Router Postgresql"],
     description="""Let you add a person to the dump table""",
     response_model=Response[Person],
@@ -48,4 +49,19 @@ async def add_person(
     server: PersonController = Depends(lambda: injector.get(PersonController)),
 ):
     data = server.add_person(body)
+    return StructureResponse.ok(data)
+
+
+@basic_person_example_route.put(
+    "/",
+    tags=["Example Router Postgresql"],
+    description="""Let you update a person in the dump table""",
+    response_model=Response[Person],
+    response_model_exclude_none=True,
+)
+async def update_person(
+    body: PersonUpdateDto,
+    server: PersonController = Depends(lambda: injector.get(PersonController)),
+):
+    data = server.uptade_person(body)
     return StructureResponse.ok(data)
