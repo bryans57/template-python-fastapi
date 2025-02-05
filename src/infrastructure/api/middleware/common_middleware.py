@@ -56,7 +56,7 @@ async def log_requests(request: Request, call_next):
         truncated_body = body[:MAX_BODY_LENGTH] + (b"... [truncated]" if len(body) > MAX_BODY_LENGTH else b"")
 
     log_data = {
-        "application": os.getenv("APP_NAME", "sifa-liquidacion-masiva-ms"),
+        "application": os.getenv("APP_NAME", "template-python-fastapi"),
         "id": (str(request.state.request_id) if hasattr(request.state, "request_id") else None),
         "method": request.method,
         "url": str(request.url),
