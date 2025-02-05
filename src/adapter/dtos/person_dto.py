@@ -97,3 +97,7 @@ class PersonUpdateDto(BaseModel):
             raise ValueError("At least one field besides 'identification' must be provided")
 
         return values
+
+
+class PersonDeleteDto(BaseModel):
+    identifications: list[str] = Field(min_length=1, description="List of identifications to delete")

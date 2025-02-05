@@ -19,7 +19,7 @@ class PersonInfo:
         return self.person_dao.get_info(params.identifications, params.fieldsInfo)
 
     def add(self, person: Person) -> Person:
-        return self.person_dao.add_person(person)
+        return self.person_dao.add(person)
 
     def update(self, person: Person):
-        return self.person_dao.update_person(person)
+        return self.person_dao.update(person)

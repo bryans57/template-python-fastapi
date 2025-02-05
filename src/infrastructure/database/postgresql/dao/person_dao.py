@@ -1,5 +1,8 @@
 from contextlib import contextmanager
-from typing import List
+from typing import (
+    List,
+    Optional,
+)
 
 from injector import inject
 from psycopg2 import (
@@ -53,7 +56,7 @@ class PersonDAO(PersonRepository):
 
             return [Person(**fila) for fila in results]
 
-    def add_person(self, person: Person) -> Person:
+    def add(self, person: Person) -> Person:
         # Convert person to a dictionary
         person_data = person.model_dump()
         fields, values = list(person_data.keys()), list(person_data.values())
@@ -77,7 +80,7 @@ class PersonDAO(PersonRepository):
             result = cursor.fetchone()
             return Person(**result)
 
-    def update_person(self, person: Person) -> Person:
+    def update(self, person: Person) -> Person:
         # Convert person to a dictionary
         person_data = person.model_dump()
         filtered_person_data = {k: v for k, v in person_data.items() if k != "identification" and v is not None}
@@ -102,3 +105,18 @@ class PersonDAO(PersonRepository):
             result = cursor.fetchone()
 
             return Person(**result)
+
+    def delete(self, identifications: List[str]) -> Optional[List[Person]]:
+        with self.get_cursor() as cursor:
+            query = sql.SQL(
+                """
+                DELETE FROM person
+                WHERE identification = ANY(%s)
+                RETURNING *;
+                """
+            )
+
+            cursor.execute(query, (identifications,))
+            results = cursor.fetchall()
+
+            return [Person(**fila) for fila in results] if results else None
