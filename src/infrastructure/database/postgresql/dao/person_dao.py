@@ -8,13 +8,13 @@ from psycopg2 import sql
 
 from src.domain.models import Person
 from src.domain.repositories import PersonRepository
-from src.infrastructure.database.postgresql.postgresql import Postgresql
+from src.infrastructure.database.postgresql.postgresqldb import PostgresqlDB
 from src.infrastructure.database.postgresql.utils import get_db_cursor
 
 
 class PersonDAO(PersonRepository):
     @inject
-    def __init__(self, db: Postgresql):
+    def __init__(self, db: PostgresqlDB):
         self.db = db
 
     def get_info(self, identifications: list, fields_info: list) -> List[Person]:

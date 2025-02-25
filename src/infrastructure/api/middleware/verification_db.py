@@ -5,7 +5,7 @@ from psycopg2 import OperationalError
 
 from src.conf import injector
 from src.domain.exceptions import DatabaseErrorHandling
-from src.infrastructure.database.postgresql.postgresql import Postgresql
+from src.infrastructure.database.postgresql.postgresqldb import PostgresqlDB
 
 
 @asynccontextmanager
@@ -16,7 +16,7 @@ async def lifespan(_app: FastAPI):
     print("Starting application...")
 
     try:
-        db_instance = injector.get(Postgresql)
+        db_instance = injector.get(PostgresqlDB)
         conn = db_instance.get_connection()
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1;")

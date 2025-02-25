@@ -1,7 +1,11 @@
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    field_serializer,
+)
 
 
 class Person(BaseModel):
@@ -16,3 +20,9 @@ class Person(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("weight", "height")
+    def serialize_decimal(self, value: Optional[Decimal], _info):
+        return float(value) if value is not None else None

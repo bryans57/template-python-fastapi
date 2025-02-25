@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -17,6 +18,7 @@ class Enviroments:
     DOMAIN = os.getenv("DOMAIN")
     URL_SERVICE = os.getenv("URL_SERVICE")
     PREFIX = ""
+    PYTEST = os.getenv("PYTEST")
 
     @staticmethod
     def validate():
@@ -38,6 +40,8 @@ class Enviroments:
         if missing_vars:
             raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
+
+Enviroments.PYTEST = "pytest" in sys.modules
 
 # Validacion de dependencias
 Enviroments.validate()

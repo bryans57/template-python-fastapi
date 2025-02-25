@@ -7,7 +7,7 @@ from psycopg2.extensions import connection
 from pytest_postgresql import factories
 
 from src.conf import injector
-from src.infrastructure.database.postgresql import Postgresql
+from src.infrastructure.database.postgresql import PostgresqlDB
 from tests.config.mocks.tablas import TestDB
 
 
@@ -51,7 +51,7 @@ postgresql = factories.postgresql("postgresql_proc")  # pylint: disable=redefine
 @pytest.fixture(scope="function")
 def postgresql_instance(postgresql):  # pylint: disable=redefined-outer-name
     # Initialize the Postgresql connection pool once for the entire session
-    test_db = Postgresql(
+    test_db = PostgresqlDB(
         host=postgresql.info.host,
         database=postgresql.info.dbname,
         user=postgresql.info.user,
@@ -69,5 +69,5 @@ def setup_db(postgresql_instance):  # pylint: disable=redefined-outer-name
         "src.infrastructure.database.postgresql.adapter.connection_config.create_database_connection",
         return_value=postgresql_instance,
     ):
-        injector.binder.bind(Postgresql, to=postgresql_instance, scope=None)
+        injector.binder.bind(PostgresqlDB, to=postgresql_instance, scope=None)
         yield postgresql_instance

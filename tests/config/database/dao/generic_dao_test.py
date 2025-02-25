@@ -1,9 +1,9 @@
-from src.infrastructure.database.postgresql import Postgresql
+from src.infrastructure.database.postgresql import PostgresqlDB
 from src.infrastructure.database.postgresql.utils import get_db_cursor
 
 
 class GenericDAOTest:
-    def __init__(self, db: Postgresql):
+    def __init__(self, db: PostgresqlDB):
         self.db = db
 
     def execute_query(self, query: str):
