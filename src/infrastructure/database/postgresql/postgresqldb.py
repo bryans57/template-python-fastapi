@@ -1,7 +1,7 @@
 from psycopg2 import pool
 
 
-class Postgresql:
+class PostgresqlDB:
     def __init__(
         self, host, database, user, password, port, minconn=1, maxconn=10
     ):  # pylint: disable=too-many-arguments,too-many-positional-arguments

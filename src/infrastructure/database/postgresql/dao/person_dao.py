@@ -1,45 +1,26 @@
-from contextlib import contextmanager
 from typing import (
     List,
     Optional,
 )
 
 from injector import inject
-from psycopg2 import (
-    DatabaseError,
-    sql,
-)
-from psycopg2.extras import RealDictCursor
+from psycopg2 import sql
 
-from src.domain.exceptions import DatabaseErrorHandling
 from src.domain.models import Person
 from src.domain.repositories import PersonRepository
-from src.infrastructure.database.postgresql.postgresql import Postgresql
+from src.infrastructure.database.postgresql.postgresqldb import PostgresqlDB
+from src.infrastructure.database.postgresql.utils import get_db_cursor
 
 
 class PersonDAO(PersonRepository):
     @inject
-    def __init__(self, db: Postgresql):
+    def __init__(self, db: PostgresqlDB):
         self.db = db
-
-    @contextmanager
-    def get_cursor(self):
-        """Context manager to handle database connections safely."""
-        con = self.db.get_connection()
-        try:
-            with con.cursor(cursor_factory=RealDictCursor) as cursor:
-                yield cursor
-                con.commit()
-        except DatabaseError as e:
-            con.rollback()
-            raise DatabaseErrorHandling(e) from e
-        finally:
-            self.db.put_connection(con)
 
     def get_info(self, identifications: list, fields_info: list) -> List[Person]:
         filtered_fields_info = [field for field in fields_info if field != "identification"]
 
-        with self.get_cursor() as cursor:
+        with get_db_cursor(self.db) as cursor:
             query = sql.SQL(
                 """
                     WITH list_person AS (
@@ -61,7 +42,7 @@ class PersonDAO(PersonRepository):
         person_data = person.model_dump()
         fields, values = list(person_data.keys()), list(person_data.values())
 
-        with self.get_cursor() as cursor:
+        with get_db_cursor(self.db) as cursor:
             # Create SQL for fields and placeholders
 
             query = sql.SQL(
@@ -85,7 +66,7 @@ class PersonDAO(PersonRepository):
         person_data = person.model_dump()
         filtered_person_data = {k: v for k, v in person_data.items() if k != "identification" and v is not None}
 
-        with self.get_cursor() as cursor:
+        with get_db_cursor(self.db) as cursor:
             fields = sql.SQL(", ").join(
                 sql.Composed([sql.Identifier(field), sql.SQL(" = "), sql.Placeholder(f"{field}")])
                 for field in filtered_person_data.keys()
@@ -107,7 +88,7 @@ class PersonDAO(PersonRepository):
             return Person(**result)
 
     def delete(self, identifications: List[str]) -> Optional[List[Person]]:
-        with self.get_cursor() as cursor:
+        with get_db_cursor(self.db) as cursor:
             query = sql.SQL(
                 """
                 DELETE FROM person
