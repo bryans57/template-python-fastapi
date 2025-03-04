@@ -21,15 +21,15 @@ spec:
         - name: 'apis-service-account'
           secret:
             secretName: 'apis-service-account'
-      containers: # Use this just if your db need a proxy for connect with your db
-        - name: cloudsql-proxy
+      containers:
+        - name: cloudsql-proxy # Use this just if your db need a proxy for connect with your db
           image: gcr.io/cloudsql-docker/gce-proxy:1.11
           command:
             [
               '/cloud_sql_proxy',
               '--dir=/cloudsql',
               '-instances=#{GCP_PROJECT}#:#{REPLACE_FOR_DB}:#{REPLACE_FOR_DB_PORT}',
-              '-credential_file=/var/secret/apis-service-account.json', # This is the service account for connect with the db
+              '-credential_file=/var/secret/#{REPLACE_FOR_JSON_ACCOUNT}.json', # This is the service account for connect with the db
             ]
           volumeMounts:
             - name: 'apis-service-account'
@@ -42,7 +42,7 @@ spec:
             requests:
               cpu: 10m
               memory: 8Mi
-        - name: #{SERVICE_NAME}#
+        - name: #{SERVICE_NAME}# # Your service name
           imagePullPolicy: Always
           image: gcr.io/#{CLUSTER_PROJECT_ID}#/#{SERVICE_NAME}#:#{Build.BuildId}#
           volumeMounts:

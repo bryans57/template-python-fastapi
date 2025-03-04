@@ -1,4 +1,4 @@
-# Validar version de imagen
+# Description: Dockerfile for the FastAPI application
 FROM python:3.9-slim
 
 WORKDIR /app
@@ -10,10 +10,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 	&& poetry install --no-interaction --no-ansi --no-cache -vv --without dev \
 	&& rm -f pyproject.toml poetry.lock
 
-# Copiar todos los archivos
+# Copy the source code
 COPY . .
 
-# Establecer la variable de entorno PYTHONPATH
+# Set the environment variables
 ENV PYTHONPATH=/app
 RUN ls -la /app
 EXPOSE 8000
